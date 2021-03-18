@@ -11,34 +11,36 @@ app.use(express.json());
 
 function checksExistsUserAccount(request, response, next) {
   const {username} = request.headers;
-  const user = users.find((user => users.id === id))
+  const user = users.find((user) => user.username === username)
   if(!user){
-    return res.status(404).json({error: "Usuário não encontrado!"})
+    return response.status(404).json({error: "Usuário não encontrado!"})
   }
   request.user = user;
   next();
 }
-
+app.get('/users', (request, response)=>{
+  return response.json(users)
+})
 app.post('/users', (request, response) => {
- const {name, username} = request.body;
- const id = uuidv4();
- const vBoolExist = users.some((users)=> users.username === username)
-  if(vBoolExist){
-    return response.json({error:"erro"}).status(400).send();
-  }
- const {user} = {
+ const { name, username } = request.body;
+ const id = uuidv4()
+ const user = { //*criei como objeto {}
    id: id,
-   name: name,
-   username: username,
+   name,
+   username,
    todos: []
  }
- user.push(users)
- return response.json(user).status(201)
+ const vBoolExist = users.some((user)=> user.username === username)
+  if(vBoolExist){
+    return response.status(400).json({error:"erro"})
+  }
+ users.push(user)
+ return response.json(user).status(201);
 });
 
 app.get('/todos', checksExistsUserAccount, (request, response) => {
   const {user} = request;
-  response.json(user.todos);
+  return response.json(user.todos);
   /**const vBoolExist = users.some((users)=> users.username === username)
   if(vBoolExist){
     response.json(users.todos)
@@ -59,7 +61,7 @@ app.post('/todos', checksExistsUserAccount, (request, response) => {
     created_at: new Date()
   }
   user.todos.push(todos)
-  return response.status(201).send()
+  return response.status(201).json(todos)
 });
 
 app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
@@ -68,34 +70,35 @@ app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
   const {id} = request.params;
   const vBoolExist = user.todos.some((todos)=> todos.id === id)
   if(!vBoolExist){
-    return response.json({error:"erro"}).status(404).send();
+    return response.status(404).json({error:"erro"})
   }
-  const todos = user.todos.filter((todos)=> todos.id === id )
-  todos.title = title;
-  todos.deadline = deadline;
+  const todos = user.todos.find((todos)=> todos.id === id )//*usei filter
+  todos.title = title;//permite alterar dessa forma pq find da a referencia e n a copia do valor
+  todos.deadline = new Date(deadline);
+  return response.json(todos);
 });
 
 app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
   const {user} = request;
   const {id} = request.params;
-  const vBoolExist = user.todos.some((todos)=> todos.id === id)
+  const vBoolExist = user.todos.some((todos)=> todos.id === id)//*usar do find
   if(!vBoolExist){
-    return response.json({error:"erro"}).status(404).send();
+    return response.status(404).json({error:"erro"})
   }
-  const todos = user.todos.filter((todos)=> todos.id === id )
+  const todos = user.todos.find((todos)=> todos.id === id )//*usei filter
   todos.done = true;
+  return response.json(todos);
 });
 
 app.delete('/todos/:id', checksExistsUserAccount, (request, response) => {
   const {user} = request;
   const {id} = request.params;
-  const vBoolExist = user.todos.some((todos)=> todos.id === id)
-  if(!vBoolExist){
-    return response.json({error:"erro"}).status(404).send();
+  const todosIndex = user.todos.findIndex((todos)=> todos.id === id )
+  if(todosIndex === -1){
+    return response.status(404).json({error:"erro"})
   }
-  const todos = user.todos.filter((todos)=> todos.id === id )
-  todos.splice(todos, 1);
-  return response.status(204);
+  user.todos.splice(todosIndex, 1);
+  return response.status(204).json();//ou .send() no lugar do json()
 });
 
 module.exports = app;
